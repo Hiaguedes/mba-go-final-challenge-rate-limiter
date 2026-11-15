@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 
 	"github.com/hiaguedes/mba-go-final-challenge-rate-limiter/config"
 	"github.com/hiaguedes/mba-go-final-challenge-rate-limiter/internal/controller"
@@ -23,10 +24,15 @@ func main() {
 
 	databaseStrategy := database.NewDatabaseStrategy[*redis.Client]()
 
-	redis := redis_db.NewRedis()
+	redis := redis_db.NewRedis(
+		cfg.IpRequestsPerSecondLimitter, 
+		cfg.ApiTokenRequestsPerSecondLimitter, 
+		cfg.RequestBlockTime,
+	)
+
 	databaseStrategy.SetStrategy(redis)
 
-	_, err = databaseStrategy.LoadDatabase(ctx)
+	client, err := databaseStrategy.LoadDatabase(ctx)
 	if err != nil {
 		errorLog := exceptions.NewOpenDatabaseException("error on open database", err)
 		log.Fatal(errorLog)
@@ -35,8 +41,16 @@ func main() {
 
 	ws := webserver.NewWebServer(":" + cfg.ServerPort)
 
-	dumbServer := controller.NewDumbServer()
-	ws.AddHandler("GET /", dumbServer.DumbServerController)
+	configMiddleware := controller.NewConfig(cfg.IpRequestsPerSecondLimitter, cfg.ApiTokenRequestsPerSecondLimitter, cfg.RequestBlockTime)
+	rateLimitterMiddleware := controller.NewRateLimitMiddleware(
+		client, 
+		configMiddleware, 
+		databaseStrategy.Allow,
+	)
+
+	dumbServer := controller.NewDumbServer().DumbServerController
+	handler := rateLimitterMiddleware.RateLimitMiddleware(http.HandlerFunc(dumbServer))
+	ws.AddHandler("GET /", handler.ServeHTTP)
 
 	ws.Start()
 }

@@ -3,8 +3,6 @@ package webserver
 import (
 	"log"
 	"net/http"
-
-	"github.com/hiaguedes/mba-go-final-challenge-rate-limiter/internal/controller"
 )
 
 
@@ -27,9 +25,8 @@ func (s *WebServer) AddHandler(path string, handler http.HandlerFunc) {
 }
 
 func (s *WebServer) Handler() http.Handler {
-	rateLimitController := controller.NewRateLimitMiddleware()
 	for path, handler := range s.Handlers {
-		s.Router.Handle(path, rateLimitController.RateLimitMiddleware(handler))
+		s.Router.Handle(path, handler)
 	}
 	return s.Router
 }

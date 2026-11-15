@@ -23,3 +23,27 @@ func NewConfigException(message string, err error) *GenericError {
 		Code:    http.StatusInternalServerError,
 	}
 }
+
+func NewRateLimitterExceeded(message string, err error) *GenericError {
+		return &GenericError{
+		Message: message,
+		Err:     err.Error(),
+		Code:    http.StatusTooManyRequests,
+	}
+}
+
+func NewOpenLuaFileException(message string, err error) *GenericError {
+		return &GenericError{
+		Message: message,
+		Err:     err.Error(),
+		Code:    http.StatusInternalServerError,
+	}
+}
+
+func NewLimitterException(message string, err error) *GenericError {
+		return &GenericError{
+		Message: message,
+		Err:     err.Error(),
+		Code:    http.StatusInternalServerError,
+	}
+}

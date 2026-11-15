@@ -7,6 +7,7 @@ import (
 
 type Database[T any] interface {
 	LoadDatabase(ctx context.Context) (T, error)
+	Allow(ctx context.Context, identifier string, isToken bool, client T) (bool, error)
 }
 
 type DatabaseStrategy[T any] struct {
@@ -28,4 +29,12 @@ func (d *DatabaseStrategy[T]) LoadDatabase(ctx context.Context) (T, error) {
 	}
 
 	return d.strategy.LoadDatabase(ctx)
+}
+
+func (d *DatabaseStrategy[T]) Allow(ctx context.Context, identifier string, isToken bool, client T) (bool, error) {
+	if d.strategy == nil {
+		return false, errors.New("no database strategy selected")
+	}
+
+	return d.strategy.Allow(ctx, identifier, isToken, client)
 }
