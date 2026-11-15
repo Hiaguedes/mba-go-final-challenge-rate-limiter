@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	ServerPort string `mapstructure:"SERVER_PORT"`
+	RedisAddr string `mapstructure:"REDIS_ADDR"`
 }
 
 func LoadConfig(path string) (*Config, error) {
@@ -18,7 +19,7 @@ func LoadConfig(path string) (*Config, error) {
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
 	// BindEnv only fails when called without key names, so its error is not reachable here.
-	_ = viper.BindEnv("SERVER_PORT")
+	_ = viper.BindEnv("SERVER_PORT", "REDIS_ADDR")
 	if err := viper.ReadInConfig(); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, err
 	}
@@ -26,5 +27,6 @@ func LoadConfig(path string) (*Config, error) {
 	// which drops env-only values when the file is absent.
 	return &Config{
 		ServerPort: viper.GetString("SERVER_PORT"),
+		RedisAddr: viper.GetString("REDIS_ADDR"),
 	}, nil
 }
