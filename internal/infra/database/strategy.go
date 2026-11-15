@@ -2,7 +2,7 @@ package database
 
 import (
 	"context"
-	"fmt"
+	"errors"
 )
 
 type Database[T any] interface {
@@ -21,10 +21,10 @@ func (d *DatabaseStrategy[T]) SetStrategy(ds Database[T]) {
 	d.strategy = ds
 }
 
-func (d *DatabaseStrategy[T]) LoadDatabase(ctx context.Context) (interface{}, error) {
+func (d *DatabaseStrategy[T]) LoadDatabase(ctx context.Context) (T, error) {
 	if d.strategy == nil {
-		fmt.Println("No payment strategy selected")
-		return nil, nil
+		var noT T
+		return noT, errors.New("no database strategy selected")
 	}
 
 	return d.strategy.LoadDatabase(ctx)

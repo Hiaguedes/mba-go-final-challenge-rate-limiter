@@ -17,7 +17,7 @@ func main() {
 	ctx := context.Background()
 	cfg, err := config.LoadConfig(".")
 	if err != nil {
-		errorLog := exceptions.NewLogConfigException("error loading configuration", err)
+		errorLog := exceptions.NewConfigException("error loading configuration", err)
 		log.Fatal("Error loading configuration: ", errorLog)
 	}
 

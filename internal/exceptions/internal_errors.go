@@ -16,7 +16,7 @@ func NewOpenDatabaseException(message string, err error) *GenericError {
 	}
 }
 
-func NewLogConfigException(message string, err error) *GenericError {
+func NewConfigException(message string, err error) *GenericError {
 	return &GenericError{
 		Message: message,
 		Err:     err.Error(),
