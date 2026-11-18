@@ -23,14 +23,7 @@ func main() {
 	}
 
 	databaseStrategy := database.NewDatabaseStrategy[*redis.Client]()
-
-	redis := redis_db.NewRedis(
-		cfg.IpRequestsPerSecondLimitter, 
-		cfg.ApiTokenRequestsPerSecondLimitter, 
-		cfg.RequestBlockTime,
-	)
-
-	databaseStrategy.SetStrategy(redis)
+	databaseStrategy.SetStrategy(redis_db.NewRedis(cfg.RedisAddr))
 
 	client, err := databaseStrategy.LoadDatabase(ctx)
 	if err != nil {
@@ -41,16 +34,27 @@ func main() {
 
 	ws := webserver.NewWebServer(":" + cfg.ServerPort)
 
-	configMiddleware := controller.NewConfig(cfg.IpRequestsPerSecondLimitter, cfg.ApiTokenRequestsPerSecondLimitter, cfg.RequestBlockTime)
-	rateLimitterMiddleware := controller.NewRateLimitMiddleware(
-		client, 
-		configMiddleware, 
+	configMiddleware := controller.NewConfig(
+		cfg.IpRequestsPerSecondLimitter,
+		cfg.ApiTokenRequestsPerSecondLimitter,
+		cfg.RequestBlockTime,
+		cfg.ApiToken,
+		cfg.TrustProxyHeaders,
+	)
+	rateLimiterMiddleware := controller.NewRateLimitMiddleware(
+		client,
+		configMiddleware,
 		databaseStrategy.Allow,
 	)
 
 	dumbServer := controller.NewDumbServer().DumbServerController
-	handler := rateLimitterMiddleware.RateLimitMiddleware(http.HandlerFunc(dumbServer))
+	// O logger fica por fora do rate limiter para registrar também as respostas 429.
+	handler := controller.RequestLogger(
+		rateLimiterMiddleware.RateLimitMiddleware(http.HandlerFunc(dumbServer)),
+	)
 	ws.AddHandler("GET /", handler.ServeHTTP)
 
-	ws.Start()
+	if err := ws.Start(); err != nil {
+		log.Fatal("web server stopped: ", err)
+	}
 }
