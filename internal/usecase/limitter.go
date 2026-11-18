@@ -4,28 +4,18 @@ import (
 	"context"
 )
 
-type LimitterUseCase[T any] struct{
-	Allow func(ctx context.Context, identifier string, isToken bool, client T) (bool, error)
+// AllowFunc é a porta de persistência: decide se a identidade pode seguir,
+// dado o limite de requisições por segundo e o tempo de bloqueio em segundos.
+type AllowFunc[T any] func(ctx context.Context, identifier string, limit, blockSeconds int, client T) (bool, error)
+
+type LimitterUseCase[T any] struct {
+	allow AllowFunc[T]
 }
 
-func NewLimitterUseCase[T any](Allow func(ctx context.Context, identifier string, isToken bool, client T) (bool, error)) *LimitterUseCase[T] {
-	return &LimitterUseCase[T]{
-		Allow: Allow,
-	}
+func NewLimitterUseCase[T any](allow AllowFunc[T]) *LimitterUseCase[T] {
+	return &LimitterUseCase[T]{allow: allow}
 }
 
-type LimitterInputDTO[T any] struct {
-	Client   T
-	Capacity int
-	FillRate int
-}
-
-func (l *LimitterUseCase[T]) Execute(ctx context.Context, identifier string, isToken bool, client T) (bool, error) {
-	res, err := l.Allow(ctx, identifier, isToken, client)
-
-	if err != nil {
-		return false, err
-	}
-
-	return res, nil
+func (l *LimitterUseCase[T]) Execute(ctx context.Context, identifier string, limit, blockSeconds int, client T) (bool, error) {
+	return l.allow(ctx, identifier, limit, blockSeconds, client)
 }
